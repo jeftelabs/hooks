@@ -1,15 +1,53 @@
-name: checks
+name: CI
+
 on:
-  - push
-  - pull_request
-  - workflow_call
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
-    uses: poppinss/.github/.github/workflows/test.yml@next
+  checks:
+    name: ${{ matrix.runtime }} checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [node, bun]
+    steps:
+      - uses: actions/checkout@v4
 
-  lint:
-    uses: poppinss/.github/.github/workflows/lint.yml@next
+      - name: Setup Node.js
+        if: matrix.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
 
-  typecheck:
-    uses: poppinss/.github/.github/workflows/typecheck.yml@next
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install npm dependencies
+        if: matrix.runtime == 'node'
+        run: npm ci
+
+      - name: Install Bun dependencies
+        if: matrix.runtime == 'bun'
+        run: bun install --frozen-lockfile
+
+      - name: Test, typecheck, and build with Node.js
+        if: matrix.runtime == 'node'
+        run: |
+          npm test
+          npm run typecheck
+          npm run build
+
+      - name: Test, typecheck, and build with Bun
+        if: matrix.runtime == 'bun'
+        run: |
+          bun run test:bun
+          bun run typecheck
+          bun run build:bun
