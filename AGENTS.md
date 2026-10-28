@@ -1,46 +1,42 @@
-# Instruções para agentes — @jeftelabs/oauth-client
+# Instruções para agentes — @jeftelabs/hooks
 
-Leia este arquivo e o índice [docs/README.md](docs/README.md) antes de trabalhar. A implementação, os testes, `package.json`, workflows e documentação são fontes de verdade; quando houver divergência, confirme o comportamento no código e corrija a documentação.
+Leia este arquivo e o índice [docs/README.md](docs/README.md) antes de trabalhar. Código, testes, `package.json`, lockfiles, workflows e documentação são fontes de verdade; confirme divergências na implementação e atualize o material afetado.
 
-## Escopo do pacote
+## Escopo
 
-`@jeftelabs/oauth-client` é uma biblioteca Node.js/TypeScript, independente de framework, para implementar dois fluxos de autorização de servidor:
+`@jeftelabs/hooks` é uma biblioteca TypeScript/ESM para registrar e executar handlers de eventos de ciclo de vida. Handlers podem ser funções ou providers com `name` e `handle(event, ...args)`. Execuções são ordenadas, suportam ordem reversa, filtragem por nome e funções de cleanup retornadas pelos handlers. Tipos genéricos permitem definir argumentos dos handlers e dos cleanups por evento.
 
-- OAuth 1.0a de três etapas: adquirir request token, direcionar o usuário ao provedor e trocar o token/verifier por access token assinado com HMAC-SHA1.
-- OAuth 2 Authorization Code: criar URL de autorização e trocar o código por access token. Há hooks protegidos que permitem integrar PKCE.
-
-Também exporta `HttpClient`, `UrlBuilder`, erros e tipos. A biblioteca não é um middleware nem um driver de provedor completo. A aplicação integra rotas, redirecionamentos, sessões/cookies, persistência de estado/PKCE, validação do callback, tratamento de erros e armazenamento seguro dos tokens.
+O pacote não integra framework, não dispara eventos de domínio automaticamente, não persiste estado e não executa cleanup por conta própria: quem usa a biblioteca deve chamar `runner.cleanup(...)` após a operação protegida.
 
 ## Documentação obrigatória
 
-É obrigatório criar ou atualizar documentação detalhada sempre que qualquer coisa nova for criada ou qualquer parte do projeto for modificada: código, API, tipos, testes, exemplos, dependências, configuração, scripts, build, CI, release ou documentação. Faça a atualização na mesma tarefa.
+É obrigatório criar ou atualizar documentação detalhada sempre que algo novo for criado ou qualquer parte do projeto for modificada: código, API, tipos, testes, exemplos, dependências, configuração, scripts, build, CI, release ou documentação. A atualização deve ocorrer na mesma tarefa.
 
-- Explique para humanos e agentes de IA propósito, fluxo, entradas, saídas, efeitos, erros, segurança, limites e manutenção.
-- Organize páginas em `docs/` usando guias, referências, arquitetura, planejamento e ferramentas conforme o assunto.
-- Registre cada página no índice `docs/README.md` e mantenha links relativos válidos.
-- Atualize `README.md` se instalação, exports, API pública, fluxos, compatibilidade ou exemplos mudarem.
-- Confira cada afirmação contra implementação e testes; não copie instruções de outro pacote sem validar.
+- Explique para humanos e agentes de IA propósito, fluxo, entradas, saídas, efeitos, falhas, limites e manutenção.
+- Organize páginas em `docs/` por arquitetura, guides, references, planning e ferramentas, conforme o assunto e o padrão existente.
+- Registre cada página em `docs/README.md`; mantenha links relativos válidos.
+- Atualize `README.md` quando instalação, compatibilidade, API pública ou exemplos mudarem.
+- Confira afirmações em código, testes, manifesto, lockfiles e workflows; não copie instruções de outro pacote sem validar.
 
 ## Mapa do código
 
-- `index.ts`: exports do pacote raiz (`HttpClient`, `UrlBuilder`, namespace `errors`).
-- `src/clients/oauth1/main.ts`: fluxo OAuth 1.0a, hooks de configuração e troca de tokens.
-- `src/clients/oauth1/signature.ts`: nonce, parâmetros OAuth, base string e assinatura HMAC-SHA1.
-- `src/clients/oauth2/main.ts`: Authorization Code, state e hooks PKCE.
-- `src/http_client.ts`: armazenamento fluente de parâmetros, headers, campos e chamadas GET/POST via `ky`.
-- `src/url_builder.ts`: composição de URL de autorização.
-- `src/types.ts`, `src/errors.ts`, `src/helpers.ts`, `src/debug.ts`: contratos, erros, aleatoriedade e logging de depuração.
-- `tests/`: testes de cliente HTTP, URL, assinatura OAuth1 e fluxos OAuth.
-- `examples/`: demonstrações Express para GitHub, GitLab, Google e Twitter; são exemplos, não parte da API de framework.
-- `package.json`: exports, scripts, engine Node e processo de build/release.
+- `index.ts`: export default da classe `Hooks`.
+- `src/hooks.ts`: armazenamento de handlers por evento e API de registro/consulta/remoção/merge.
+- `src/runner.ts`: execução serial ou reversa, filtro `without` e ciclo de cleanup.
+- `src/types.ts`: tipos públicos `Runner`, `CleanupHandler`, `HookHandler`, `HookHandlerProvider` e `ExtractHookHandlerArgs`.
+- `tests/`: contratos da classe, runner, cleanup e inferência de tipos.
+- `bin/test.ts`: configuração e execução do runner de testes.
+- `.github/workflows/`: validação Node/Bun, releases, deploy, labels e fechamento de itens antigos.
 
 ## Regras de implementação
 
-- Preserve ESM, imports relativos com extensão `.ts` e os exports publicados definidos em `package.json`.
-- Preserve a API pública e o comportamento coberto por testes, salvo solicitação explícita de mudança.
-- Tokens, segredos, códigos, verifier e state são credenciais/valores sensíveis: não os exponha em logs, mensagens, testes ou documentação. Nunca adicione credenciais reais; use valores fictícios e `.env.example`.
-- Estado OAuth e verifier PKCE precisam ser vinculados à sessão apropriada pela aplicação. Não diga que o pacote persiste ou valida automaticamente valores recebidos do provedor.
-- OAuth 1 usa assinatura HMAC-SHA1 conforme RFC 5849. OAuth2 suporta somente Authorization Code, com PKCE por extensão da classe.
-- Não altere `build/`, `coverage/` ou `node_modules/` como fonte.
-- Confirme os comandos reais em `package.json`. `npm test` executa lint antes dos testes. O hook de pre-commit chama `npm test`; quando uma instrução de maior prioridade proibir executar testes, documente o motivo se precisar criar o commit sem esse hook.
-- Use Conventional Commits e mantenha alterações preexistentes.
+- Preserve ESM, exports publicados em `package.json` e imports relativos com extensão `.js` nas fontes, salvo alteração deliberada com build/testes comprovados.
+- Preserve a ordem de inserção, deduplicação de mesma referência via `Set` e execução sequencial aguardada.
+- `Runner` é one-shot: após `run()` ou `runReverse()`, chamadas posteriores não executam handlers novamente. A execução malsucedida ainda pode deixar cleanups pendentes.
+- Cleanups registrados rodam em ordem inversa à execução dos handlers. `run()` não os chama; a aplicação chama `cleanup()` com os argumentos de cleanup definidos para o evento.
+- `without(names)` compara os nomes dos handlers; funções usam `Function.name`, providers usam `name`. `without()` sem argumentos ignora todos os handlers.
+- Um erro em handler propaga ao chamador e interrompe os handlers seguintes. Cleanups já registrados continuam disponíveis para tentativa explícita do chamador.
+- Um cleanup rejeitado interrompe o ciclo e o runner não oferece retry; documente e teste qualquer alteração nessa semântica.
+- Não altere `build/`, `coverage/` ou `node_modules/` como fonte. Confirme scripts em `package.json`.
+- O CI deve validar Node.js e Bun. Mudanças de runtime/execução exigem testes, typecheck e build nos dois.
+- Use Conventional Commits e preserve alterações preexistentes.

@@ -5,6 +5,9 @@
   "type": "module",
   "files": [
     "build",
+    "docs",
+    "AGENTS.md",
+    "CLAUDE.md",
     "!build/bin",
     "!build/tests"
   ],
@@ -15,12 +18,15 @@
   "scripts": {
     "pretest": "npm run lint",
     "test": "c8 npm run quick:test",
+    "quick:test:bun": "bun bin/test.ts",
+    "test:bun": "bun run lint && bun run quick:test:bun",
     "lint": "eslint",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "precompile": "npm run lint",
     "compile": "tsup-node && tsc --emitDeclarationOnly --declaration",
     "build": "npm run compile",
+    "build:bun": "bun run lint && bun run compile",
     "version": "npm run build",
     "prepublishOnly": "npm run build",
     "release": "release-it",

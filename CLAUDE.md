@@ -1,26 +1,28 @@
 # Orientações para Claude e agentes de IA
 
-As instruções canônicas estão em [AGENTS.md](./AGENTS.md). Antes de analisar ou alterar o projeto, leia também o índice e os documentos pertinentes em [docs/README.md](./docs/README.md).
+As instruções canônicas estão em [AGENTS.md](./AGENTS.md). Leia também [docs/README.md](./docs/README.md) e as páginas relevantes antes de investigar ou alterar o projeto.
 
-Este repositório contém `@jeftelabs/oauth-client`, uma biblioteca Node.js/TypeScript independente de framework para OAuth 1.0a de três etapas e OAuth 2 Authorization Code. O pacote oferece clientes genéricos, assinatura OAuth1, suporte extensível a PKCE no OAuth2, utilitários HTTP/URL, tipos e erros. Não oferece integração pronta com framework, persistência de sessão, cookie ou token.
+Este repositório contém `@jeftelabs/hooks`, uma biblioteca TypeScript/ESM para registrar handlers de eventos, executá-los em série ou em ordem reversa e executar callbacks de cleanup que eles retornem. A aplicação cliente controla os eventos de domínio e deve chamar cleanup explicitamente.
 
 ## Documentação obrigatória
 
 É extremamente obrigatório criar ou atualizar documentação detalhada toda vez que algo novo for criado ou qualquer parte do projeto for modificada. Isso inclui código, API, tipos, testes, exemplos, dependências, configuração, scripts, build, CI, release e documentos. Atualize a documentação na mesma tarefa.
 
-- Descreva comportamento real, fluxo, entradas, saídas, efeitos, erros, limites, segurança e manutenção para humanos e IAs.
-- Organize o material em `docs/` por guias, referências, arquitetura, planejamento e ferramentas, de modo proporcional à mudança.
-- Registre toda nova página em `docs/README.md` e preserve navegação por links relativos.
-- Mantenha o README público alinhado com mudanças de instalação, exports, API, fluxos ou exemplos.
-- Verifique toda afirmação em código, testes, manifesto e workflows. Não reaproveite conteúdo de outro projeto sem validação.
+- Descreva comportamento real, fluxo, entradas, saídas, efeitos, erros, limites e manutenção para humanos e IAs.
+- Organize o material em `docs/` por arquitetura, guias, referências, planejamento e ferramentas, conforme necessário.
+- Inclua cada nova página no índice `docs/README.md` e preserve os links relativos.
+- Mantenha README público alinhado com compatibilidade e API pública.
+- Confira toda afirmação em código, testes, manifesto, lockfiles e workflows.
 
-## Pontos que exigem cuidado
+## Cuidados específicos
 
-- A aplicação que integra o cliente deve criar e armazenar `state`/PKCE verifier, validar o callback e proteger tokens/segredos. Os métodos de state apenas geram ou comparam valores quando chamados.
-- Os hooks PKCE são `getPkceCodeVerifierForRedirect`, `getPkceCodeVerifierForAccessToken`, `getPkceCodeChallenge` e `getPkceCodeChallengeMethod` em uma subclasse de `Oauth2Client`.
-- Os callbacks dos métodos configuram parâmetros; hooks protegidos de classe configuram o padrão antes do callback do consumidor.
-- Respostas OAuth1 são interpretadas como querystring por padrão; OAuth2 espera JSON no token endpoint, com possibilidade de configurar parsing.
-- Alterações na API publicada precisam considerar `exports` e declarações TypeScript do build.
-- Não registrar tokens ou secrets, nem introduzir credenciais reais.
-
-Consulte `docs/references/api.md`, `docs/architecture/overview.md` e `docs/guides/` antes de alterar os fluxos. Consulte `docs/references/development.md` e `docs/planning/maintenance.md` para build, testes, workflows e documentação.
+- O export default de `index.ts` é `Hooks`; os tipos ficam no subpath `@jeftelabs/hooks/types`.
+- `Hooks<EventMap>` recebe um mapa no formato `evento: [argumentosDoHandler, argumentosDoCleanup]`.
+- Handlers de função recebem os argumentos definidos para o evento; providers recebem primeiro o nome do evento em `handle(event, ...args)`.
+- `Runner.run()` e `runReverse()` executam uma vez, em série, aguardando cada handler. Um erro interrompe a execução e rejeita a Promise.
+- Handlers podem retornar cleanup síncrono ou assíncrono. O cleanup é explícito, roda na ordem inversa e aceita seus próprios argumentos tipados.
+- Se uma execução falha, limpezas já retornadas podem ser chamadas pelo código consumidor em `catch`. O pacote não chama cleanup automaticamente.
+- `cleanup()` que rejeita interrompe a sequência; o runner não permite nova tentativa por meio de `cleanup()`.
+- `without(['nome'])` filtra por `Function.name` ou pelo `name` de um provider; `without()` ignora todos os handlers.
+- Preserve Node.js e Bun. Leia scripts reais em `package.json`; execute validação adequada nos dois runtimes quando houver impacto.
+- Não invente comportamento transacional, rollback automático, persistência, integração de framework ou execução concorrente.
