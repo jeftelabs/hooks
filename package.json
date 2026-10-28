@@ -1,0 +1,111 @@
+{
+  "name": "@jeftelabs/hooks",
+  "version": "1.0.0",
+  "description": "Hooks module for executing before/after lifecycle hooks",
+  "type": "module",
+  "files": [
+    "build",
+    "docs",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "!build/bin",
+    "!build/tests"
+  ],
+  "exports": {
+    ".": "./build/index.js",
+    "./types": "./build/src/types.js"
+  },
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "c8 npm run quick:test",
+    "quick:test:bun": "bun bin/test.ts",
+    "test:bun": "bun run lint && bun run quick:test:bun",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "precompile": "npm run lint",
+    "compile": "tsup-node && tsc --emitDeclarationOnly --declaration",
+    "build": "npm run compile",
+    "build:bun": "bun run lint && bun run compile",
+    "version": "npm run build",
+    "prepublishOnly": "npm run build",
+    "release": "release-it",
+    "quick:test": "cross-env NODE_DEBUG=jeftelabs:hooks node --import=@jeftelabs/exec --enable-source-maps bin/test.ts",
+    "prepare": "husky",
+    "commitlint": "commitlint --edit",
+    "commit": "cz"
+  },
+  "devDependencies": {
+    "@arapucajs/eslint-config": "^1.2.0",
+    "@arapucajs/prettier": "^1.2.0",
+    "@arapucajs/tsconfig": "^1.0.0",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@jeftelabs/exec": "^1.0.1",
+    "@swc/core": "^1.16.1",
+    "@t8ngs/assert": "^1.0.0",
+    "@t8ngs/expect-type": "^1.2.0",
+    "@t8ngs/runner": "^1.0.1",
+    "@types/node": "^26.6.5",
+    "c8": "^12.0.0",
+    "commitizen": "^4.3.2",
+    "cross-env": "^10.1.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^10.8.1",
+    "husky": "^9.1.7",
+    "prettier": "^3.9.6",
+    "release-it": "21.0.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  },
+  "homepage": "https://github.com/jeftelabs/hooks#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeftelabs/hooks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jeftelabs/hooks/issues"
+  },
+  "keywords": [
+    "hooks",
+    "poppinss"
+  ],
+  "author": "JefteCosta <jefteamorim@gmail.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "tsup": {
+    "entry": [
+      "./index.ts",
+      "./src/types.ts"
+    ],
+    "outDir": "./build",
+    "clean": true,
+    "format": "esm",
+    "dts": false,
+    "sourcemap": false,
+    "target": "esnext"
+  },
+  "c8": {
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "exclude": [
+      "tests/**"
+    ]
+  },
+  "prettier": "@arapucajs/prettier",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
+    }
+  }
+}
